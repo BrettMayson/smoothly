@@ -12,7 +12,7 @@ crossterm = "0.10"
 hashbrown = "0.5"
 md5 = "0.6"
 fs_extra = "1.1"
-pbo = {path = "../pbo-rs"}
+pbo = {git = "https://github.com/synixebrett/pbo-rs", branch = "master"}
 question = "0.2"
 rust-crypto = "0.2"
 serde_derive = "1.0"
