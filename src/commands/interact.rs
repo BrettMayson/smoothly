@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Write;
 
-use crossterm::{InputEvent, KeyEvent, input, cursor};
+use crossterm::{InputEvent, KeyEvent, RawScreen, input, cursor};
 use colored::*;
 
 use crate::{SmoothlyError, Command, Repo, Mod, Transaction, State};
@@ -64,6 +64,8 @@ impl Command for Interact {
             ));
         }
 
+        let screen = RawScreen::into_raw_mode();
+
         let input = input();
         let mut stdin = input.read_async();
 
@@ -94,6 +96,9 @@ impl Command for Interact {
                                         State::OptionalDisabled => State::OptionalEnabled,
                                         State::OptionalEnabled => State::Disabled,
                                     };
+                                },
+                                'q' => {
+                                    std::process::exit(0);
                                 },
                                 '\n' => {
                                     if index < mods.len() { 
@@ -153,7 +158,7 @@ impl Command for Interact {
                     _ => {}
                 }
             }
-            std::thread::sleep(std::time::Duration::from_millis(20));
+            std::thread::sleep(std::time::Duration::from_millis(50));
         }
     }
 }
