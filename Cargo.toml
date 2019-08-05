@@ -1,0 +1,26 @@
+[package]
+name = "smoothly"
+version = "0.1.0"
+description = "Smoothly manage Swifty repositories"
+authors = ["Brett <brett@bmandesigns.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "2.33"
+colored = "1.8"
+crossterm = "0.10"
+hashbrown = "0.5"
+md5 = "0.6"
+fs_extra = "1.1"
+pbo = {path = "../pbo-rs"}
+question = "0.2"
+rust-crypto = "0.2"
+serde_derive = "1.0"
+serde_json = "1.0"
+serde= "1.0"
+walkdir = "*"
+rayon = "*"
+
+[target.'cfg(windows)'.dependencies]
+ansi_term = "0.12"
+winreg = "0.6"
