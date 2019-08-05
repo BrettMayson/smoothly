@@ -15,22 +15,22 @@ impl Interact {
         for (i, arma_mod) in mods.iter().enumerate() {
             let (name, trans, state) = arma_mod;
             if index == i {
-                println!("{} {:20} {}                       ", "*".cyan(), color!(name, trans), state!(state));
+                println!("\r{} {:20} {}                       ", "*".cyan(), color!(name, trans), state!(state));
             } else {
-                println!("  {:20} {}                       ", color!(name, trans), state!(state));
+                println!("\r  {:20} {}                       ", color!(name, trans), state!(state));
             }
         }
         println!();
         let end = mods.len();
         if index == end {
-            println!("{} Apply", "*".cyan());
+            println!("\r{} Apply", "*".cyan());
         } else {
-            println!("  Apply");
+            println!("\r  Apply");
         }
         if index == end + 1 {
-            println!("{} Cancel", "*".cyan());
+            println!("\r{} Cancel", "*".cyan());
         } else {
-            println!("  Cancel");
+            println!("\r  Cancel");
         }
         cursor.hide().unwrap();
         Ok(())
@@ -98,6 +98,7 @@ impl Command for Interact {
                                     };
                                 },
                                 'q' => {
+                                    drop(screen);
                                     std::process::exit(0);
                                 },
                                 '\n' => {
@@ -127,8 +128,10 @@ impl Command for Interact {
                                         let j = serde_json::to_string_pretty(&repo).unwrap();
                                         let mut fout = File::create(repo_path).unwrap();
                                         fout.write_all(j.as_bytes()).unwrap();
+                                        drop(screen);
                                         std::process::exit(0);
                                     } else {
+                                        drop(screen);
                                         std::process::exit(0);
                                     }
                                 },
