@@ -30,3 +30,11 @@ macro_rules! state {
         }
     };
 }
+
+macro_rules! exit {
+    ($c:expr, $i:ident) => {
+        print!("\r");
+        drop($i);
+        std::process::exit($c);
+    };
+}

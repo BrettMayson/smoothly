@@ -9,28 +9,39 @@ use crate::{SmoothlyError, Command, Repo, Mod, Transaction, State};
 pub struct Interact {}
 
 impl Interact {
-    fn tick(mods: &[(String, Transaction, State)], index: usize) -> Result<(), SmoothlyError> {
+    fn tick(mods: &[(String, Transaction, State)], index: usize, page: usize) -> Result<(), SmoothlyError> {
         let mut cursor = cursor();
-        cursor.move_up(mods.len() as u16 + 3);
-        for (i, arma_mod) in mods.iter().enumerate() {
+        let c = cursor2index(index, mods.len());
+        let start = page * 8;
+        let mut end = start+8;
+        if end > mods.len() {
+            end = mods.len();
+        }
+        cursor.move_up(12);
+        println!("\rPage: {} ({} - {})                             ", page, start + 1, end);
+        for (i, arma_mod) in mods[start..end].iter().enumerate() {
             let (name, trans, state) = arma_mod;
-            if index == i {
-                println!("\r{} {:20} {}                       ", "*".cyan(), color!(name, trans), state!(state));
-            } else {
-                println!("\r  {:20} {}                       ", color!(name, trans), state!(state));
+            if let Cursor::Item(_) = c {
+                if i == index - (10 * (index / 10)) {
+                    println!("\r{} {:20} {}                                                                     ", "*".cyan(), color!(name, trans), state!(state));
+                    continue;
+                }
             }
+            println!("\r  {:20} {}                                                                     ", color!(name, trans), state!(state));
+        }
+        for _ in 0..(8 - (end - start)) {
+            println!("\r                                                                     ");
         }
         println!();
-        let end = mods.len();
-        if index == end {
-            println!("\r{} Apply", "*".cyan());
+        if c == Cursor::Apply {
+            println!("\r{} Apply (End)                                                                     ", "*".cyan());
         } else {
-            println!("\r  Apply");
+            println!("\r  Apply (End)                                                                     ");
         }
-        if index == end + 1 {
-            println!("\r{} Cancel", "*".cyan());
+        if c == Cursor::Cancel {
+            println!("\r{} Cancel (q)                                                                     ", "*".cyan());
         } else {
-            println!("\r  Cancel");
+            println!("\r  Cancel (q)                                                                     ");
         }
         cursor.hide().unwrap();
         Ok(())
@@ -64,104 +75,143 @@ impl Command for Interact {
             ));
         }
 
-        let screen = RawScreen::into_raw_mode();
+        let screen = RawScreen::into_raw_mode()?;
 
         let input = input();
         let mut stdin = input.read_async();
 
         let mut index = 0;
+        let mut page = 0;
 
-        for _ in 0..mods.len()+4 {
+        for _ in 0..13 {
             println!();
         }
 
         loop {
-            Interact::tick(&mods, index)?;
+            Interact::tick(&mods, index, page)?;
             if let Some(key_event) = stdin.next() {
+                let cursor = cursor2index(index, mods.len());
                 match key_event {
-                    InputEvent::Keyboard(e) => { match e{
+                    InputEvent::Keyboard(e) => { match e {
                         KeyEvent::Up => {
-                            index = if index != 0 { index - 1 } else { mods.len() + 1 };
+                            index = if index % 10 != 0 { index - 1 } else { index };
                         },
                         KeyEvent::Down => {
-                            index = if index != mods.len() + 1 { index + 1 } else { 0 };
+                            if cursor != Cursor::Cancel {
+                                index = index + 1;
+                            }
+                            // index = if index - (10 * (index / 10)) != 9 { index + 1 } else { index };
                         },
+                        KeyEvent::Right => {
+                            page = if (page + 1) * 8 < mods.len() - 1 { page + 1 } else { page };
+                            index = page * 10;
+                        }
+                        KeyEvent::Left => {
+                            page = if page == 0 { 0 } else { page - 1};
+                            index = page * 10;
+                        }
                         KeyEvent::Char(c) => {
                             match c {
                                 ' ' => {
-                                    if index >= mods.len() { continue; }
-                                    mods[index].2 = match mods[index].2 {
-                                        State::Disabled => State::Enabled,
-                                        State::Enabled => State::OptionalDisabled,
-                                        State::OptionalDisabled => State::OptionalEnabled,
-                                        State::OptionalEnabled => State::Disabled,
-                                    };
+                                    if let Cursor::Item(c) = cursor {
+                                        mods[c].2 = match mods[c].2 {
+                                            State::Disabled => State::Enabled,
+                                            State::Enabled => State::OptionalDisabled,
+                                            State::OptionalDisabled => State::OptionalEnabled,
+                                            State::OptionalEnabled => State::Disabled,
+                                        };
+                                    }
                                 },
                                 'q' => {
-                                    drop(screen);
-                                    std::process::exit(0);
+                                    exit!(0, screen);
                                 },
                                 '\n' => {
-                                    if index < mods.len() { 
-                                        mods[index].1 = if mods[index].1 == Transaction::Remove || mods[index].1 == Transaction::Existing { Transaction::Existing } else { Transaction::Add };
-                                        mods[index].2 = State::Enabled;
-                                    } else if index == mods.len() {
-                                        repo.requiredMods = Vec::new();
-                                        repo.optionalMods = Vec::new();
-                                        for arma_mod in mods {
-                                            if arma_mod.1 == Transaction::Add || arma_mod.1 == Transaction::Existing {
-                                                let new_mod = Mod {
-                                                    modName: arma_mod.0,
-                                                    checkSum: "".to_owned(),
-                                                    Enabled: arma_mod.2 == State::Enabled || arma_mod.2 == State::OptionalEnabled,
-                                                };
-                                                match arma_mod.2 {
-                                                    State::Enabled | State::Disabled => {
-                                                        repo.requiredMods.push(new_mod);
-                                                    },
-                                                    State::OptionalDisabled | State::OptionalEnabled => {
-                                                        repo.optionalMods.push(new_mod);
+                                    match cursor {
+                                        Cursor::Item(c) => {
+                                            mods[c].1 = if mods[c].1 == Transaction::Remove || mods[c].1 == Transaction::Existing { Transaction::Existing } else { Transaction::Add };
+                                            mods[c].2 = State::Enabled;
+                                        },
+                                        Cursor::Apply => {
+                                            repo.requiredMods = Vec::new();
+                                            repo.optionalMods = Vec::new();
+                                            for arma_mod in mods {
+                                                if arma_mod.1 == Transaction::Add || arma_mod.1 == Transaction::Existing {
+                                                    let new_mod = Mod {
+                                                        modName: arma_mod.0,
+                                                        checkSum: "".to_owned(),
+                                                        Enabled: arma_mod.2 == State::Enabled || arma_mod.2 == State::OptionalEnabled,
+                                                    };
+                                                    match arma_mod.2 {
+                                                        State::Enabled | State::Disabled => {
+                                                            repo.requiredMods.push(new_mod);
+                                                        },
+                                                        State::OptionalDisabled | State::OptionalEnabled => {
+                                                            repo.optionalMods.push(new_mod);
+                                                        }
                                                     }
                                                 }
                                             }
-                                        }
-                                        let j = serde_json::to_string_pretty(&repo).unwrap();
-                                        let mut fout = File::create(repo_path).unwrap();
-                                        fout.write_all(j.as_bytes()).unwrap();
-                                        drop(screen);
-                                        std::process::exit(0);
-                                    } else {
-                                        drop(screen);
-                                        std::process::exit(0);
+                                            let j = serde_json::to_string_pretty(&repo).unwrap();
+                                            let mut fout = File::create(repo_path).unwrap();
+                                            fout.write_all(j.as_bytes()).unwrap();
+                                            exit!(0, screen);
+                                        },
+                                        Cursor::Cancel => {exit!(0, screen);},
                                     }
                                 },
                                 _ => {}
                             }
                         }
                         KeyEvent::Delete => {
-                            if index >= mods.len() { continue; }
-                            let current = mods[index].1.clone();
-                            mods[index].1 = match current {
-                                Transaction::Existing => Transaction::Remove,
-                                Transaction::Add => Transaction::Ignore,
-                                _ => current,
-                            };
-                            mods[index].2 = State::Disabled;
+                            if let Cursor::Item(c) = cursor {
+                                let current = mods[c].1.clone();
+                                mods[c].1 = match current {
+                                    Transaction::Existing => Transaction::Remove,
+                                    Transaction::Add => Transaction::Ignore,
+                                    _ => current,
+                                };
+                                mods[c].2 = State::Disabled;
+                            }
                         }
                         KeyEvent::Insert => {
-                            if index >= mods.len() { continue; }
-                            mods[index].1 = if mods[index].1 == Transaction::Remove || mods[index].1 == Transaction::Existing { Transaction::Existing } else { Transaction::Add };
-                            mods[index].2 = State::Enabled;
+                            if let Cursor::Item(c) = cursor {
+                                mods[c].1 = if mods[c].1 == Transaction::Remove || mods[c].1 == Transaction::Existing { Transaction::Existing } else { Transaction::Add };
+                                mods[c].2 = State::Enabled;
+                            }
                         }
                         KeyEvent::End => {
-                            index = mods.len();
+                            index = (10 * (index / 10)) + 8;
                         },
                         _ => {}
                     }},
                     _ => {}
                 }
             }
-            std::thread::sleep(std::time::Duration::from_millis(50));
+            std::thread::sleep(std::time::Duration::from_millis(5));
         }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Cursor {
+    Item(usize),
+    Apply,
+    Cancel,
+}
+
+fn cursor2index(c: usize, max: usize) -> Cursor {
+    match c - (10 * (c / 10)) {
+        8 => Cursor::Apply,
+        9 => Cursor::Cancel,
+        _ => {
+            let i = c - (2 * (c / 10));
+            if i == max {
+                Cursor::Apply
+            } else if i == max + 1 {
+                Cursor::Cancel
+            } else {
+                Cursor::Item(i)
+            }
+        },
     }
 }
