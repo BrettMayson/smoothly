@@ -46,45 +46,47 @@ impl Addon {
     }
     pub fn hash(&self) -> String {
         let mut hashes = Vec::new();
-        for file in &self.files {
-            hashes.append(&mut file.name.chars().map(|c| c as u8).collect::<Vec<u8>>());
-            //hashes.append(&mut ":".chars().map(|c| c as u8).collect::<Vec<u8>>());
-            hashes.append(&mut file.hash().chars().map(|c| c as u8).collect::<Vec<u8>>());
-            //hashes.append(&mut "$$".chars().map(|c| c as u8).collect::<Vec<u8>>());
-            for part in &file.parts {
-                //hashes.append(&mut part.name.chars().map(|c| c as u8).collect::<Vec<u8>>());
-                //hashes.append(&mut ":".chars().map(|c| c as u8).collect::<Vec<u8>>());
-                //hashes.append(&mut part.hash.chars().map(|c| c as u8).collect::<Vec<u8>>());
-            }
+        let mut files = self.files.clone();
+        files.sort_by(|a,b| a.name.cmp(&b.name));
+        for mut file in files {
+            hashes.append(&mut file.hash().chars().map(|c| c as u8).collect::<Vec<u8>>()[0..16].to_vec());
         }
         format!("{:X}", md5::compute(&hashes))
     }
 }
 
+#[derive(Clone)]
 pub struct SwiftyFile {
     pub name: String,
     pub parts: Vec<FilePart>,
+    pub hash: Option<String>,
 }
 impl SwiftyFile {
     pub fn new(name: String) -> Self {
         Self {
             name,
             parts: Vec::new(),
+            hash: None,
         }
     }
-    pub fn line(&self) -> String {
-        let mut out = format!("{}:{}:{}:{}:{}\n", if self.name.ends_with(".pbo") {"PBO"} else {"FILE"}, self.name, self.size(), self.parts.len(), self.hash());
+    pub fn line(&mut self) -> String {
+        let mut out = format!("{}:{}:{}:{}:{}\n", if self.name.ends_with(".pbo") {"PBO"} else {"FILE"}, self.name.clone(), self.size(), self.parts.len(), self.hash());
         for part in &self.parts {
             out.push_str(&part.line());
         }
         out
     }
-    pub fn hash(&self) -> String {
+    pub fn hash(&mut self) -> String {
+        if let Some(hash) = &self.hash {
+            return hash.to_owned();
+        }
         let mut hashes = Vec::new();
         for part in &self.parts {
             hashes.append(&mut part.hash.chars().map(|c| c as u8).collect::<Vec<u8>>());
         }
-        format!("{:X}", md5::compute(&hashes))
+        let hash = format!("{:X}", md5::compute(&hashes));
+        self.hash = Some(hash.clone());
+        hash
     }
     pub fn size(&self) -> usize {
         let mut size = 0;
@@ -95,6 +97,7 @@ impl SwiftyFile {
     }
 }
 
+#[derive(Clone)]
 pub struct FilePart {
     pub name: String,
     pub start: usize,

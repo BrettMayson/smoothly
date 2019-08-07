@@ -21,7 +21,7 @@ impl Command for New {
         )
     }
 
-    fn run(&self, args: &clap::ArgMatches, _: String) -> Result<(), SmoothlyError> {
+    fn run(&self, args: &clap::ArgMatches, repopath: String) -> Result<(), SmoothlyError> {
         let repo = Repo {
             repoName: if let Some(name) = args.value_of("name") {
                 name.to_owned()
@@ -84,7 +84,7 @@ impl Command for New {
             version: crate::repo::default_version(),
         };
         let j = serde_json::to_string_pretty(&repo).unwrap();
-        let mut fout = File::create("repo").unwrap();
+        let mut fout = File::create(repopath).unwrap();
         fout.write_all(j.as_bytes()).unwrap();
         Ok(())
     }

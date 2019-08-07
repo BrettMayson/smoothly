@@ -147,7 +147,7 @@ impl Command for Push {
                         let mut buffer = Vec::new();
                         f.read_to_end(&mut buffer).unwrap();
                         swiftyfile.parts.push(FilePart {
-                            name: path.file_name().unwrap().to_str().unwrap().to_owned(),
+                            name: format!("{}_{}", path.file_name().unwrap().to_str().unwrap().to_owned(), buffer.len()),
                             hash: format!("{:X}", md5::compute(&buffer)),
                             size: buffer.len(),
                             start: 0,
@@ -158,7 +158,7 @@ impl Command for Push {
 
                 let mut outfile = File::create(format!("{}{}mod.srf", moddir, std::path::MAIN_SEPARATOR))?;
                 outfile.write_all(addon.line().as_bytes())?;
-                for file in &addon.files {
+                for file in &mut addon.files {
                     outfile.write_all(file.line().as_bytes())?;
                 }
             }
