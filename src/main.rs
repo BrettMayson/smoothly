@@ -24,6 +24,7 @@ fn main() {
         .arg(clap::Arg::with_name("repo")
             .help("Repository file (repo.json)")
             .global(true)
+            .long("repo")
         );
 
     let mut commands: Vec<Box<dyn Command>> = Vec::new();
@@ -33,11 +34,13 @@ fn main() {
     //commands.push(Box::new(smoothly::commands::Add {}));
     commands.push(Box::new(smoothly::commands::Interact {}));
     commands.push(Box::new(smoothly::commands::Push {}));
+    commands.push(Box::new(smoothly::commands::SelfUpdate {}));
 
     for command in commands.iter() {
         let sub = command.register();
+        let name = sub.get_name().to_owned();
         app = app.subcommand(sub);
-        hash_commands.insert(app.get_name().to_owned(), command);
+        hash_commands.insert(name, command);
     }
 
     let matches = app.get_matches();

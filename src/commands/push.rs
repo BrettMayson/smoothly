@@ -16,6 +16,10 @@ impl Command for Push {
             .arg(clap::Arg::with_name("dir")
                 .help("Output directory")
                 .required(true)
+            ).arg(clap::Arg::with_name("mods")
+                .help("Mods to push")
+                .multiple(true)
+                .takes_value(true)
             )
     }
 
@@ -25,6 +29,12 @@ impl Command for Push {
         if !PathBuf::from(&dir).exists() {
             std::fs::create_dir_all(&dir)?;
         }
+
+        let mods: Vec<String> = if args.is_present("mods") {
+            args.values_of("mods").unwrap().map(|s| s.to_owned()).collect()
+        } else {
+            vec!()
+        };
 
         let mut options = fs_extra::dir::CopyOptions::new();
         options.overwrite = true;
@@ -37,6 +47,8 @@ impl Command for Push {
             let path = entry.path();
             if !path.is_dir() { continue; }
             let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+            if !mods.is_empty() && !mods.contains(&name) { continue; }
+            println!(" - {}", name);
             if repo.has_mod(&name) {
                 fs_extra::copy_items(&vec!(path), &format!("{}{}", dir, std::path::MAIN_SEPARATOR), &options).unwrap();
             }
@@ -49,6 +61,8 @@ impl Command for Push {
             let path = entry.path();
             if !path.is_dir() { continue; }
             let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+            if !mods.is_empty() && !mods.contains(&name) { continue; }
+            println!(" - {}", name);
             let mut addon = Addon::new(name.clone());
             let moddir = &format!("{}{}{}", dir, std::path::MAIN_SEPARATOR, name);
             if repo.has_mod(&name) {
