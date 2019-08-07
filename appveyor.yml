@@ -46,6 +46,10 @@ test_script:
       cargo build --target %TARGET% --release
     )
 
+artifacts:
+  - path: target\%TARGET%\debug\smoothly.exe
+  - path: target\%TARGET%\release\smoothly.exe
+
 before_deploy:
   # TODO Update this to build the artifacts that matter to you
   - cargo rustc --target %TARGET% --release --bin hello -- -C lto
