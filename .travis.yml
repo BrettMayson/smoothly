@@ -1,0 +1,75 @@
+# Based on the "trust" template v0.1.2
+# https://github.com/japaric/trust/tree/v0.1.2
+
+dist: trusty
+language: rust
+services: docker
+sudo: required
+
+# TODO Rust builds on stable by default, this can be
+# overridden on a case by case basis down below.
+
+env:
+  global:
+    # TODO Update this to match the name of your project.
+    - CRATE_NAME=trust
+
+matrix:
+  # TODO These are all the build jobs. Adjust as necessary. Comment out what you
+  # don't need
+  include:
+
+    # Linux
+    - env: TARGET=i686-unknown-linux-gnu
+    - env: TARGET=i686-unknown-linux-musl
+    - env: TARGET=x86_64-unknown-linux-gnu
+    - env: TARGET=x86_64-unknown-linux-musl
+
+    # OSX
+    - env: TARGET=i686-apple-darwin
+      os: osx
+    - env: TARGET=x86_64-apple-darwin
+      os: osx
+
+
+before_install:
+  - set -e
+  - rustup self update
+
+install:
+  - sh ci/install.sh
+  - source ~/.cargo/env || true
+
+script:
+  - bash ci/script.sh
+
+after_script: set +e
+
+before_deploy:
+  - sh ci/before_deploy.sh
+
+deploy:
+  api_key:
+    secure: EUnhb6H+KhM+KX0o/GR+e5zteNcGuaPldL0V8C8TNywlgVicS0ZIpTAAnJj3bcGsfxHkdny8Gf6jRZ53TUEcChQil/I5XMT1lQJRv+M3jnzZ0HBHn10oWEU5T37P0gZ5e6taF/VfIa2wknHSFQSJirGHN6dmEs/36T7o6oKnt4yy+zJZ1/qNH2UmjdzjqXEmxEVuCGrSszMiG5W3JlDnP9QWE2RaTNIaL8NJpBlvthvs8uLWC4fBAj0XRSrQJO5f4xvBRBPSkqt2pP8ZkcsaXPcgh5S/wkzuFNgrUnb95mM/XZf1eUyW3C75AuUGHbR2D7xulmvlr9MF/ZJV1jXfuYncr0Lxjq54STyk9vfKx5QQCsNxOd7gznsNlUJQ4HsbLEkkAxJVj9gJsGz0egNLjbWr1Mmbp7fm3HogE946uJy5wUqYrnnqWLFrtRWBKt7BBliipLIa62MdR9/UuGJ78m9egWLrmOx2Iet5AqWlbO3ZV/SKfid1Ylr/lFuEC6WlNMDpd50eiGwKOm9BSNI8KeSateeoEMmuxQ6dPaixSVZegvt5P+6yTUR59XPoyn5tz92d5MFZLb4OmSr4RLO4T5HyTrk1Pf/xBiEZyRinkQPPvmW6A9UdqwYPBk8JTCPLjyROJjnF6rx/EZQcMgy5vzcoRrGgkqKQmMz6C/5mqnM=
+  file_glob: true
+  file: $CRATE_NAME-$TRAVIS_TAG-$TARGET.*
+  on:
+    condition: $TRAVIS_RUST_VERSION = stable
+    tags: true
+  provider: releases
+  skip_cleanup: true
+
+cache: cargo
+before_cache:
+  # Travis can't cache files that are not readable by "others"
+  - chmod -R a+r $HOME/.cargo
+
+branches:
+  only:
+    # release tags
+    - /^v\d+\.\d+\.\d+.*$/
+    - master
+
+notifications:
+  email:
+    on_success: never

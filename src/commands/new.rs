@@ -9,16 +9,14 @@ use crate::{SmoothlyError, Command, Repo, Server};
 
 pub struct New {}
 impl Command for New {
-    fn register(&self) -> (&str, clap::App) {
-        ("new",
-            clap::SubCommand::with_name("new")
-                .about("Create a new Swifty repository")
-                .arg(clap::Arg::with_name("name")
-                    .help("Repository Name")
-                ).arg(clap::Arg::with_name("path")
-                    .help("Path to the mods")
-                )
-        )
+    fn register(&self) -> clap::App {
+        clap::SubCommand::with_name("new")
+            .about("Create a new Swifty repository")
+            .arg(clap::Arg::with_name("name")
+                .help("Repository Name")
+            ).arg(clap::Arg::with_name("path")
+                .help("Path to the mods")
+            )
     }
 
     fn run(&self, args: &clap::ArgMatches, repopath: String) -> Result<(), SmoothlyError> {

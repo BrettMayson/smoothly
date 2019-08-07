@@ -49,14 +49,12 @@ impl Interact {
 }
 
 impl Command for Interact {
-    fn register(&self) -> (&str, clap::App) {
-        ("interact",
-            clap::SubCommand::with_name("interact")
-                .about("Interactively manage the mods in the repository")
-        )
+    fn register(&self) -> clap::App {
+        clap::SubCommand::with_name("interact")
+            .about("Interactively manage the mods in the repository")
     }
 
-    fn run(&self, args: &clap::ArgMatches, repo_path: String) -> Result<(), SmoothlyError> {
+    fn run(&self, _: &clap::ArgMatches, repo_path: String) -> Result<(), SmoothlyError> {
         let mut repo = Repo::new(repo_path.clone())?;
         println!("Name: {}", repo.repoName);
         println!("{} - {} - {} - {}", "Existing".purple(), "New".green(), "Remove".red(), "Ignored".white());

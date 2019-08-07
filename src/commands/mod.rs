@@ -2,7 +2,7 @@ use crate::SmoothlyError;
 
 pub trait Command {
     // (name, description)
-    fn register(&self) -> (&str, clap::App);
+    fn register(&self) -> clap::App;
     
     fn run(&self, _: &clap::ArgMatches, _: String) -> Result<(), SmoothlyError> {
         unimplemented!();
@@ -20,3 +20,6 @@ pub use interact::Interact;
 
 mod push;
 pub use push::Push;
+
+mod selfupdate;
+pub use selfupdate::SelfUpdate;

@@ -3,7 +3,6 @@ use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{Read, Write};
 
-use rayon::prelude::*;
 use pbo::PBO;
 
 use crate::{SmoothlyError, Command, Repo, Addon, SwiftyFile, FilePart};
@@ -11,15 +10,13 @@ use crate::{SmoothlyError, Command, Repo, Addon, SwiftyFile, FilePart};
 pub struct Push {}
 
 impl Command for Push {
-    fn register(&self) -> (&str, clap::App) {
-        ("push",
-            clap::SubCommand::with_name("push")
-                .about("Push the mods to an output directory")
-                .arg(clap::Arg::with_name("dir")
-                    .help("Output directory")
-                    .required(true)
-                )
-        )
+    fn register(&self) -> clap::App {
+        clap::SubCommand::with_name("push")
+            .about("Push the mods to an output directory")
+            .arg(clap::Arg::with_name("dir")
+                .help("Output directory")
+                .required(true)
+            )
     }
 
     fn run(&self, args: &clap::ArgMatches, repo: String) -> Result<(), SmoothlyError> {
