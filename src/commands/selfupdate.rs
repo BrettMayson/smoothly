@@ -9,10 +9,10 @@ impl Command for SelfUpdate {
     }
 
     fn run(&self, _: &clap::ArgMatches, _: String) -> Result<(), SmoothlyError> {
-        let status = self_update::backends::github::Update::configure().unwrap()
-            .repo_owner("jaemk")
-            .repo_name("self_update")
-            .bin_name("self_update_example")
+        let status = self_update::backends::github::Update::configure()
+            .repo_owner("synixebrett")
+            .repo_name("smoothly")
+            .bin_name(if cfg!(windows) {"smoothly.exe"} else {"smoothly"})
             .show_download_progress(true)
             .current_version(env!("CARGO_PKG_VERSION"))
             .build().unwrap()
