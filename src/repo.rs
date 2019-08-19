@@ -4,7 +4,7 @@ use serde_json;
 use crate::{SmoothlyError, State};
 
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Repo {
     pub repoName: String,
     pub clientParameters: String,
@@ -16,10 +16,14 @@ pub struct Repo {
 
     #[serde(default="default_version")]
     pub version: String,
+
+    #[serde(skip_serializing_if="String::is_empty")]
+    #[serde(default="String::new")]
+    pub imageChecksum: String,
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Mod {
     pub modName: String,
     pub Enabled: bool,
@@ -29,7 +33,7 @@ pub struct Mod {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Server {
     pub name: String,
     pub address: String,
@@ -69,6 +73,21 @@ impl Repo {
             }
         }
         State::Disabled
+    }
+
+    pub fn set_hash(&mut self, name: &str, hash: String) {
+        for arma_mod in &mut self.requiredMods {
+            if arma_mod.modName == name {
+                arma_mod.checkSum = hash;
+                return;
+            }
+        }
+        for arma_mod in &mut self.optionalMods {
+            if arma_mod.modName == name {
+                arma_mod.checkSum = hash;
+                return;
+            }
+        }
     }
 }
 

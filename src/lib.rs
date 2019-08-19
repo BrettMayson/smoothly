@@ -30,25 +30,32 @@ pub enum State {
 pub struct Addon {
     pub name: String,
     pub files: Vec<SwiftyFile>,
+    pub hash: Option<String>,
 }
 impl Addon {
     pub fn new(name: String) -> Self {
         Self {
             name,
             files: Vec::new(),
+            hash: None,
         }
     }
-    pub fn line(&self) -> String {
-        format!("ADDON:{}:{}:{}\n", self.name, self.files.len(), self.hash())
+    pub fn line(&mut self) -> String {
+        format!("ADDON:{}:{}:{}\n", self.name.clone(), self.files.len(), self.hash())
     }
-    pub fn hash(&self) -> String {
+    pub fn hash(&mut self) -> String {
+        if let Some(hash) = &self.hash {
+            return hash.to_owned();
+        }
         let mut hashes = Vec::new();
         let mut files = self.files.clone();
         files.sort_by(|a,b| a.name.cmp(&b.name));
         for mut file in files {
             hashes.append(&mut file.hash().chars().map(|c| c as u8).collect::<Vec<u8>>()[0..16].to_vec());
         }
-        format!("{:X}", md5::compute(&hashes))
+        let hash = format!("{:X}", md5::compute(&hashes));
+        self.hash = Some(hash.clone());
+        hash
     }
 }
 

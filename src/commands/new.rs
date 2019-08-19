@@ -80,6 +80,7 @@ impl Command for New {
                 servers
             },
             version: crate::repo::default_version(),
+            imageChecksum: String::new(),
         };
         let j = serde_json::to_string_pretty(&repo).unwrap();
         let mut fout = File::create(repopath).unwrap();

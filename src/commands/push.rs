@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 
 use pbo::PBO;
+use sha1::{Sha1, Digest};
 
 use crate::{SmoothlyError, Command, Repo, Addon, SwiftyFile, FilePart};
 
@@ -30,11 +31,37 @@ impl Command for Push {
             std::fs::create_dir_all(&dir)?;
         }
 
+        let repofile = format!("{}{}repo.json", dir, std::path::MAIN_SEPARATOR);
         let mods: Vec<String> = if args.is_present("mods") {
-            args.values_of("mods").unwrap().map(|s| s.to_owned()).collect()
+            if !PathBuf::from(&repofile).exists() {
+                println!("Unable to use selective push when no repo.json file exists");
+                vec!()
+            } else {
+                args.values_of("mods").unwrap().map(|s| s.to_owned()).collect()
+            }
         } else {
             vec!()
         };
+        
+        let mut outrepo = repo.clone();
+        if !PathBuf::from(&repofile).exists() {
+            File::create(&repofile)?;
+        }
+
+        let srcimage = format!("{}{}repo.png", repo.basePath, std::path::MAIN_SEPARATOR);
+        if !PathBuf::from(&srcimage).exists() {
+            println!("A repo.png is required. Add it to {}{} with dimensions of 300x160", repo.basePath, std::path::MAIN_SEPARATOR);
+            std::process::exit(1);
+        } else {
+            let dst = format!("{}{}repo.png", dir, std::path::MAIN_SEPARATOR);
+            std::fs::copy(srcimage, &dst)?;
+            let mut image = File::open(&dst)?;
+            let mut data = Vec::new();
+            image.read_to_end(&mut data)?;
+            let mut hasher = Sha1::new();
+            hasher.input(&data);
+            outrepo.imageChecksum = format!("{:X}", hasher.result());
+        }
 
         let mut options = fs_extra::dir::CopyOptions::new();
         options.overwrite = true;
@@ -50,6 +77,9 @@ impl Command for Push {
             if !mods.is_empty() && !mods.contains(&name) { continue; }
             println!(" - {}", name);
             if repo.has_mod(&name) {
+                let moddir = &format!("{}{}{}", dir, std::path::MAIN_SEPARATOR, name);
+                std::fs::remove_dir_all(&moddir)?;
+                std::fs::create_dir_all(&moddir)?;
                 fs_extra::copy_items(&vec!(path), &format!("{}{}", dir, std::path::MAIN_SEPARATOR), &options).unwrap();
             }
         }
@@ -172,8 +202,16 @@ impl Command for Push {
                 for file in &mut addon.files {
                     outfile.write_all(file.line().as_bytes())?;
                 }
+                outrepo.set_hash(&name, addon.hash());
             }
         }
+
+        println!("Generating Repofile");
+
+        let j = serde_json::to_string_pretty(&outrepo).unwrap();
+        let mut fout = File::create(repofile).unwrap();
+        fout.write_all(j.as_bytes()).unwrap();
+
         Ok(())
     }
 }

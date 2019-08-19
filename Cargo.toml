@@ -12,6 +12,7 @@ crossterm = "0.10"
 fs_extra = "1.1"
 hashbrown = "0.5"
 md5 = "0.6"
+sha-1 = "0.8.1"
 pbo = {git = "https://github.com/synixebrett/pbo-rs", branch = "master"}
 question = "0.2"
 rayon = "*"

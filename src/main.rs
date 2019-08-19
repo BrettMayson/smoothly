@@ -48,8 +48,6 @@ fn main() {
     let repo = if !matches.is_present("repo") {
         if std::path::PathBuf::from("repo.json").exists() {
             "repo.json"
-        } else if std::path::PathBuf::from("repo.toml").exists() {
-            "repo.toml"
         } else {
             println!("No repo specified");
             std::process::exit(1);
