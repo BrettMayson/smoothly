@@ -169,19 +169,24 @@ impl Command for Push {
                         let mut start = headertotal.len();
 
                         for mut file in pbo.files {
-                            let mut buffer = Vec::new();
-                            file.1.read_to_end(&mut buffer).unwrap();
+                            let mut buffersize = 0;
+                            let mut hasher = Md5::new();
+                            loop {
+                                let mut buffer = vec![0u8; 4194304];
+                                let read = file.1.read(&mut buffer).unwrap();
+                                hasher.input(&buffer[0..read]);
+                                buffersize += read;
+                                if read != 4194304 {
+                                    break;
+                                }
+                            }
                             swiftyfile.parts.push(FilePart {
                                 name: file.0.clone(),
-                                size: buffer.len(),
-                                hash: format!("{:X}", {
-                                    let mut hasher = Md5::new();
-                                    hasher.input(&buffer);
-                                    hasher.result()
-                                }),
+                                size: buffersize,
+                                hash: format!("{:X}",hasher.result()),
                                 start,
                             });
-                            start += buffer.len();
+                            start += buffersize;
                         }
                         let mut chk = pbo.checksum.unwrap();
                         chk.insert(0, 0);
