@@ -5,8 +5,9 @@ environment:
   global:
   # overridden on a case by case basis down below
     RUST_VERSION: stable
-
     CRATE_NAME: smoothly
+    OPENSSL_STATIC: 1
+    OPENSSL_LIBS: "libssl_static:libcrypto_static"
 
   # TODO These are all the build jobs. Adjust as necessary. Comment out what you
   # don't need
@@ -17,7 +18,9 @@ environment:
 
     # MSVC
     - TARGET: x86_64-pc-windows-msvc
+      OPENSSL_DIR: "C:\\OpenSSL-v111-Win64"
     - TARGET: i686-pc-windows-msvc
+      OPENSSL_DIR: "C:\\OpenSSL-v111-Win32"
 
 install:
   - ps: >-
