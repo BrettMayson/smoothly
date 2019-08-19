@@ -1,3 +1,5 @@
+use md5::{Md5, Digest};
+
 #[macro_use]
 pub mod macros;
 
@@ -47,13 +49,13 @@ impl Addon {
         if let Some(hash) = &self.hash {
             return hash.to_owned();
         }
-        let mut hashes = Vec::new();
+        let mut hasher = Md5::new();
         let mut files = self.files.clone();
         files.sort_by(|a,b| a.name.cmp(&b.name));
         for mut file in files {
-            hashes.append(&mut file.hash().chars().map(|c| c as u8).collect::<Vec<u8>>()[0..16].to_vec());
+            hasher.input(&mut file.hash().chars().map(|c| c as u8).collect::<Vec<u8>>()[0..16].to_vec());
         }
-        let hash = format!("{:X}", md5::compute(&hashes));
+        let hash = format!("{:X}", hasher.result());
         self.hash = Some(hash.clone());
         hash
     }
@@ -84,11 +86,11 @@ impl SwiftyFile {
         if let Some(hash) = &self.hash {
             return hash.to_owned();
         }
-        let mut hashes = Vec::new();
+        let mut hasher = Md5::new();
         for part in &self.parts {
-            hashes.append(&mut part.hash.chars().map(|c| c as u8).collect::<Vec<u8>>());
+            hasher.input(&mut part.hash.chars().map(|c| c as u8).collect::<Vec<u8>>());
         }
-        let hash = format!("{:X}", md5::compute(&hashes));
+        let hash = format!("{:X}", hasher.result());
         self.hash = Some(hash.clone());
         hash
     }

@@ -3,8 +3,9 @@ use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{Read, Write};
 
+use md5::{Md5, Digest};
 use pbo::PBO;
-use sha1::{Sha1, Digest};
+use sha1::{Sha1};
 
 use crate::{SmoothlyError, Command, Repo, Addon, SwiftyFile, FilePart};
 
@@ -152,7 +153,11 @@ impl Command for Push {
                         headertotal.append(&mut transform_u32_to_array_of_u8(0u32).to_vec().into_iter().rev().collect::<Vec<u8>>());
                         headertotal.append(&mut transform_u32_to_array_of_u8(0u32).to_vec().into_iter().rev().collect::<Vec<u8>>());
 
-                        let header_digest = md5::compute(&headertotal);
+                        let header_digest = {
+                            let mut hasher = Md5::new();
+                            hasher.input(&headertotal);
+                            hasher.result()
+                        };
 
                         swiftyfile.parts.push(FilePart {
                             name: "$$HEADER$$".to_owned(),
@@ -169,27 +174,39 @@ impl Command for Push {
                             swiftyfile.parts.push(FilePart {
                                 name: file.0.clone(),
                                 size: buffer.len(),
-                                hash: format!("{:X}", md5::compute(&buffer)),
+                                hash: format!("{:X}", {
+                                    let mut hasher = Md5::new();
+                                    hasher.input(&buffer);
+                                    hasher.result()
+                                }),
                                 start,
                             });
                             start += buffer.len();
                         }
                         let mut chk = pbo.checksum.unwrap();
-                        chk.insert(0, 0);;
+                        chk.insert(0, 0);
                         swiftyfile.parts.push(FilePart {
                             name: "$$END$$".to_owned(),
                             size:  21,
-                            hash: format!("{:X}", md5::compute(&chk)),
+                            hash: format!("{:X}", {
+                                    let mut hasher = Md5::new();
+                                    hasher.input(&chk);
+                                    hasher.result()
+                                }),
                             start,
                         });
                     } else {
                         if path.file_name().unwrap().to_str().unwrap() == "mod.srf" { continue; }
                         let mut f = File::open(path).unwrap();
                         let mut buffer = Vec::new();
-                        f.read_to_end(&mut buffer).unwrap();
+                        f.read(&mut buffer).unwrap();
                         swiftyfile.parts.push(FilePart {
                             name: format!("{}_{}", path.file_name().unwrap().to_str().unwrap().to_owned(), buffer.len()),
-                            hash: format!("{:X}", md5::compute(&buffer)),
+                            hash: format!("{:X}", {
+                                let mut hasher = Md5::new();
+                                hasher.input(&buffer);
+                                hasher.result()
+                            }),
                             size: buffer.len(),
                             start: 0,
                         });
