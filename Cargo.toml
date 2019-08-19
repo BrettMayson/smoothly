@@ -16,7 +16,6 @@ sha-1 = "0.8.1"
 pbo = {git = "https://github.com/synixebrett/pbo-rs", branch = "master"}
 question = "0.2"
 rayon = "*"
-rust-crypto = "0.2"
 self_update = "*"
 serde_derive = "1.0"
 serde_json = "1.0"
