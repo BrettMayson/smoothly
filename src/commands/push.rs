@@ -198,16 +198,21 @@ impl Command for Push {
                     } else {
                         if path.file_name().unwrap().to_str().unwrap() == "mod.srf" { continue; }
                         let mut f = File::open(path).unwrap();
-                        let mut buffer = Vec::new();
-                        f.read(&mut buffer).unwrap();
+                        let mut buffersize = 0;
+                        let mut hasher = Md5::new();
+                        loop {
+                            let mut buffer = vec![0u8; 4194304];
+                            let read = f.read(&mut buffer).unwrap();
+                            hasher.input(&buffer[0..read]);
+                            buffersize += read;
+                            if read != 4194304 {
+                                break;
+                            }
+                        }
                         swiftyfile.parts.push(FilePart {
-                            name: format!("{}_{}", path.file_name().unwrap().to_str().unwrap().to_owned(), buffer.len()),
-                            hash: format!("{:X}", {
-                                let mut hasher = Md5::new();
-                                hasher.input(&buffer);
-                                hasher.result()
-                            }),
-                            size: buffer.len(),
+                            name: format!("{}_{}", path.file_name().unwrap().to_str().unwrap().to_owned(), buffersize),
+                            hash: format!("{:X}", hasher.result()),
+                            size: buffersize as usize,
                             start: 0,
                         });
                     }
